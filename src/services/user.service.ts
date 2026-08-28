@@ -1,9 +1,11 @@
 import bcrypt from "bcryptjs";
 
+import { UserRole } from "../../generated/prisma/enums.js";
+
 import { prisma } from "../config/database.js";
 import { AppError } from "../utils/app.error.js";
 
-interface CreateUserInput {
+interface CreateAgentInput {
   firstName: string;
   lastName: string;
   email: string;
@@ -14,7 +16,6 @@ interface UpdateUserInput {
   firstName?: string;
   lastName?: string;
   email?: string;
-  password?: string;
 }
 
 const userSelect = {
@@ -29,6 +30,9 @@ const userSelect = {
 
 export const getUsers = async () => {
   return prisma.user.findMany({
+    where: {
+      deletedAt: null,
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -37,8 +41,11 @@ export const getUsers = async () => {
 };
 
 export const getUserById = async (id: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id },
+  const user = await prisma.user.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+    },
     select: userSelect,
   });
 
@@ -50,8 +57,11 @@ export const getUserById = async (id: string) => {
 };
 
 export const updateUser = async (id: string, input: UpdateUserInput) => {
-  const existingUser = await prisma.user.findUnique({
-    where: { id },
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+    },
   });
 
   if (!existingUser) {
@@ -59,9 +69,10 @@ export const updateUser = async (id: string, input: UpdateUserInput) => {
   }
 
   if (input.email && input.email !== existingUser.email) {
-    const emailExists = await prisma.user.findUnique({
+    const emailExists = await prisma.user.findFirst({
       where: {
         email: input.email,
+        deletedAt: null,
       },
     });
 
@@ -74,7 +85,6 @@ export const updateUser = async (id: string, input: UpdateUserInput) => {
     firstName?: string;
     lastName?: string;
     email?: string;
-    passwordHash?: string;
   } = {};
 
   if (input.firstName !== undefined) {
@@ -89,27 +99,58 @@ export const updateUser = async (id: string, input: UpdateUserInput) => {
     data.email = input.email;
   }
 
-  if (input.password !== undefined) {
-    data.passwordHash = await bcrypt.hash(input.password, 12);
-  }
-
   return prisma.user.update({
-    where: { id },
+    where: {
+      id,
+    },
     data,
     select: userSelect,
   });
 };
 
 export const deleteUser = async (id: string) => {
-  const existingUser = await prisma.user.findUnique({
-    where: { id },
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+    },
   });
 
   if (!existingUser) {
     throw new AppError("User not found", 404);
   }
 
-  await prisma.user.delete({
-    where: { id },
+  await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+};
+
+export const createAgent = async (data: CreateAgentInput) => {
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email: data.email,
+    },
+  });
+
+  if (existingUser) {
+    throw new AppError("A user with this email already exists", 409);
+  }
+
+  const passwordHash = await bcrypt.hash(data.password, 12);
+
+  return prisma.user.create({
+    data: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      passwordHash,
+      role: UserRole.AGENT,
+    },
+    select: userSelect,
   });
 };

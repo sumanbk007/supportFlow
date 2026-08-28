@@ -4,7 +4,7 @@ const ROUTES = {
 
   USERS: "/",
   USER_BY_ID: "/users/:id",
-  USER_AGENTS: "/users/agents",
+  USER_AGENTS: "/agents",
 } as const;
 
 export default ROUTES;

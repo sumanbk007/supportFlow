@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
 import {
+  createAgent,
   deleteUser,
   getUserById,
   getUsers,
@@ -41,5 +42,15 @@ export const deleteUserController = async (req: Request, res: Response) => {
 
   return sendResponse(res, {
     message: "User deleted successfully",
+  });
+};
+
+export const createAgentController = async (req: Request, res: Response) => {
+  const agent = await createAgent(req.body);
+
+  return sendResponse(res, {
+    statusCode: 201,
+    message: "Agent created successfully",
+    data: agent,
   });
 };

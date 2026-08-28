@@ -55,9 +55,10 @@ export const registerCustomer = async (data: RegisterCustomerInput) => {
 };
 
 export const login = async (data: LoginInput) => {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     where: {
       email: data.email,
+      deletedAt: null,
     },
   });
 

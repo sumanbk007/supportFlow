@@ -18,7 +18,9 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/users", userRoutes);
+app.use("/api/agents", userRoutes);
 app.use("/api/auth", authRoutes);
+
 app.use(errorMiddleware);
 
 export default app;
